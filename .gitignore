@@ -1,47 +1,18 @@
-cpbook-code/
-kattis_unsolved/
-interview/
+/*
+!/codechef
+!/codeforce
+!/devskill
+!/IOI
+!/kattis
+!/kattis_done
+!/spoj
+!/UVA
+
 
 # Ignore binary executable files
 *.out
 
 # Ignore input files
 *.txt
-
-# Ignore temp files
-FFT.cpp
-FenwickTree.cpp
-LCA.cpp
-LCA2.cpp
-LIS.cpp
-MCBM.cpp
-MCBM_hopcroft.cpp
-MFDinic.cpp
-MFPushRelabel.cpp
-MOD.cpp
-MPM.cpp
-Matmul.cpp
-MinCostBM.cpp
-PIT.cpp
-PIT.png
-SA.cpp
-SA_CP.cpp
-SegmentTree.cpp
-UF.py
-a.out
-bBST.cpp
-edmonkarp.cpp
-gcd-lcm.cpp
-hierholzer.cpp
-input.txt
-karatsuba.cpp
-minCostMaxFlow.cpp
-n_th_order.cpp
-prime.cpp
-segmentTreeSum.cpp
-temp.cpp
-temp.txt
-template.cpp
-trie.cpp
 
 
