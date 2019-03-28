@@ -13,6 +13,6 @@
 
 Collection of CP algorithmic problems done. 
 Main libraries used:
-- [CP book](https://github.com/stevenhalim/cpbook-code) - Steven Halim
+- [CP book](https://github.com/stevenhalim/cpbook-code) - Steven Halim ([CS3233](https://www.comp.nus.edu.sg/~stevenha/cs3233.html))
 - [E-Maxx Algorithms](https://cp-algorithms.com/) in English
 
