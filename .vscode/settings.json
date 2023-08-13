@@ -1,4 +1,13 @@
 {
 	"python.pythonPath": "/Library/Frameworks/Python.framework/Versions/3.7/bin/python3",
-	"python.linting.pylintEnabled": true
+    "python.linting.pylintEnabled": true,
+    "files.associations": {
+        "iostream": "cpp",
+        "iomanip": "cpp",
+        "ostream": "cpp",
+        "initializer_list": "cpp",
+        "valarray": "cpp",
+        "*.tcc": "cpp",
+        "vector": "cpp"
+    }
 }
