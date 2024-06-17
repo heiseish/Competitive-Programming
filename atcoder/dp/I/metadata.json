@@ -1,0 +1,19 @@
+{
+ "code_filename": "main.rs",
+ "judge": {
+  "diff": 1e-09,
+  "error_type": "absolute",
+  "judge_type": "decimal"
+ },
+ "lang": "rust",
+ "problem": {
+  "alphabet": "I",
+  "contest": {
+   "contest_id": "dp"
+  },
+  "problem_id": "dp_i"
+ },
+ "sample_in_pattern": "in*.txt",
+ "sample_out_pattern": "ans*.txt",
+ "timeout_ms": 2000
+}

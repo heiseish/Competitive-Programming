@@ -1,0 +1,831 @@
+#![allow(unused_variables)]
+#![allow(unused_must_use)]
+#![allow(dead_code)]
+#![allow(unused_macros)]
+#![allow(unused_imports)]
+use core::f32::*;
+use std::cmp::*;
+use std::collections::*;
+use std::f32::consts::*;
+use std::fs::File;
+use std::io::*;
+use std::iter::FromIterator;
+use std::ops::Bound::*;
+use std::ops::*;
+mod modular {
+    use std::fmt;
+    use std::ops::*;
+
+    #[derive(Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct MInt<const MOD: i64>(i64);
+
+    impl<const MOD: i64> fmt::Display for MInt<MOD> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", self.0)
+        }
+    }
+
+    impl<const MOD: i64> fmt::Debug for MInt<MOD> {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "{}", self.0)
+        }
+    }
+
+    const fn add<const MOD: i64>(mut a: i64, mut b: i64) -> i64 {
+        if a < 0 {
+            a += MOD;
+        }
+        a %= MOD;
+
+        if b < 0 {
+            b += MOD;
+        }
+        b %= MOD;
+        (a + b) % MOD
+    }
+
+    const fn mult<const MOD: i64>(a: i64, b: i64) -> i64 {
+        ((a % MOD) * (b % MOD)) % MOD
+    }
+
+    const fn bin_pow<const MOD: i64>(mut a: i64, mut b: i64) -> i64 {
+        a %= MOD;
+        let mut ret = 1;
+        while b > 0 {
+            if (b & 1) > 0 {
+                ret = mult::<MOD>(ret, a);
+            }
+            a = mult::<MOD>(a, a);
+            b >>= 1;
+        }
+        ret
+    }
+
+    const fn bin_pow_u128<const MOD: i64>(mut a: i64, mut b: u128) -> i64 {
+        a %= MOD;
+        let mut ret = 1;
+        while b > 0 {
+            if (b & 1) > 0 {
+                ret = mult::<MOD>(ret, a);
+            }
+            a = mult::<MOD>(a, a);
+            b >>= 1;
+        }
+        ret
+    }
+
+    impl<const MOD: i64> MInt<MOD> {
+        pub const ZERO: MInt<MOD> = MInt(0);
+        pub const ONE: MInt<MOD> = MInt(1);
+
+        pub const fn new(value: i64) -> Self {
+            Self(value % MOD)
+        }
+
+        pub const fn pow(self, exp: MInt<MOD>) -> Self {
+            Self::new(bin_pow::<MOD>(self.0, exp.0))
+        }
+
+        pub const fn pow_u128(self, exp: u128) -> Self {
+            Self::new(bin_pow_u128::<MOD>(self.0, exp))
+        }
+
+        pub const fn inv(self) -> Self {
+            self.pow(Self::new(MOD - 2))
+        }
+        pub fn init_inv_mod(n: usize) -> Vec<MInt<MOD>> {
+            let mut inv = vec![0i64; n];
+            inv[0] = 1;
+            inv[1] = 1;
+            for i in 2..n {
+                inv[i] = mult::<MOD>(
+                    add::<MOD>(MOD, -MOD / i as i64),
+                    inv[(MOD % i as i64) as usize],
+                );
+            }
+            inv.into_iter().map(|x| x.into()).collect()
+        }
+
+        pub fn init_fact_mod(n: usize) -> Vec<MInt<MOD>> {
+            let mut fact = vec![MInt::<MOD>::new(1); n];
+            for i in 1..n {
+                fact[i] = fact[i - 1] * i as i64;
+            }
+            fact
+        }
+
+        pub fn init_ifact_mod(n: usize, fact: &[MInt<MOD>]) -> Vec<MInt<MOD>> {
+            let mut ifact = vec![MInt::<MOD>::new(0); n];
+            ifact[n - 1] = fact[n - 1].inv();
+            for i in (0..(n - 1)).rev() {
+                ifact[i] = ifact[i + 1] * (i + 1) as i64;
+            }
+            ifact
+        }
+
+        // init (fact, ifact)
+        pub fn init_fact(n: usize) -> (Vec<MInt<MOD>>, Vec<MInt<MOD>>) {
+            let mut fact = vec![MInt::<MOD>::new(1); n];
+            let mut ifact = vec![MInt::<MOD>::new(0); n];
+            for i in 1..n {
+                fact[i] = fact[i - 1] * i as i64;
+            }
+            ifact[n - 1] = fact[n - 1].inv();
+            for i in (0..(n - 1)).rev() {
+                ifact[i] = ifact[i + 1] * (i + 1) as i64;
+            }
+            (fact, ifact)
+        }
+    }
+
+    impl<const MOD: i64> Add for MInt<MOD> {
+        type Output = Self;
+
+        fn add(self, rhs: Self) -> Self::Output {
+            Self::new(add::<MOD>(self.0, rhs.0))
+        }
+    }
+
+    impl<const MOD: i64> Add<i64> for MInt<MOD> {
+        type Output = Self;
+
+        fn add(self, rhs: i64) -> Self::Output {
+            Self::new(add::<MOD>(self.0, rhs))
+        }
+    }
+
+    impl<const MOD: i64> BitAnd for MInt<MOD> {
+        type Output = Self;
+
+        fn bitand(self, rhs: Self) -> Self::Output {
+            Self::new(self.0 & rhs.0)
+        }
+    }
+
+    impl<const MOD: i64> BitAnd<i64> for MInt<MOD> {
+        type Output = Self;
+
+        fn bitand(self, rhs: i64) -> Self::Output {
+            Self::new(self.0 & rhs)
+        }
+    }
+
+    impl<const MOD: i64> BitAnd<i32> for MInt<MOD> {
+        type Output = Self;
+
+        fn bitand(self, rhs: i32) -> Self::Output {
+            Self::new(self.0 & rhs as i64)
+        }
+    }
+
+    impl<const MOD: i64> BitAnd<usize> for MInt<MOD> {
+        type Output = Self;
+
+        fn bitand(self, rhs: usize) -> Self::Output {
+            Self::new(self.0 & rhs as i64)
+        }
+    }
+
+    impl<const MOD: i64> BitOr for MInt<MOD> {
+        type Output = Self;
+
+        fn bitor(self, rhs: Self) -> Self::Output {
+            Self::new(self.0 | rhs.0)
+        }
+    }
+
+    impl<const MOD: i64> BitOr<i32> for MInt<MOD> {
+        type Output = Self;
+
+        fn bitor(self, rhs: i32) -> Self::Output {
+            Self::new(self.0 | rhs as i64)
+        }
+    }
+
+    impl<const MOD: i64> BitOr<i64> for MInt<MOD> {
+        type Output = Self;
+
+        fn bitor(self, rhs: i64) -> Self::Output {
+            Self::new(self.0 | rhs)
+        }
+    }
+
+    impl<const MOD: i64> BitOr<usize> for MInt<MOD> {
+        type Output = Self;
+
+        fn bitor(self, rhs: usize) -> Self::Output {
+            Self::new(self.0 | rhs as i64)
+        }
+    }
+
+    impl<const MOD: i64> AddAssign for MInt<MOD> {
+        fn add_assign(&mut self, rhs: Self) {
+            *self = *self + rhs;
+        }
+    }
+
+    impl<const MOD: i64> AddAssign<i64> for MInt<MOD> {
+        fn add_assign(&mut self, rhs: i64) {
+            *self = *self + rhs;
+        }
+    }
+
+    impl<const MOD: i64> Sub for MInt<MOD> {
+        type Output = Self;
+
+        fn sub(self, rhs: Self) -> Self::Output {
+            Self::new(add::<MOD>(self.0, -rhs.0))
+        }
+    }
+
+    impl<const MOD: i64> Sub<i64> for MInt<MOD> {
+        type Output = Self;
+
+        fn sub(self, rhs: i64) -> Self::Output {
+            Self::new(add::<MOD>(self.0, -rhs))
+        }
+    }
+
+    impl<const MOD: i64> SubAssign for MInt<MOD> {
+        fn sub_assign(&mut self, rhs: Self) {
+            *self = *self - rhs;
+        }
+    }
+
+    impl<const MOD: i64> SubAssign<i64> for MInt<MOD> {
+        fn sub_assign(&mut self, rhs: i64) {
+            *self = *self - rhs;
+        }
+    }
+
+    impl<const MOD: i64> Neg for MInt<MOD> {
+        type Output = Self;
+
+        // Required method
+        fn neg(self) -> Self::Output {
+            Self::new(add::<MOD>(-self.0, 0))
+        }
+    }
+
+    impl<const MOD: i64> Mul for MInt<MOD> {
+        type Output = Self;
+
+        fn mul(self, rhs: Self) -> Self::Output {
+            Self::new(mult::<MOD>(self.0, rhs.0))
+        }
+    }
+
+    impl<const MOD: i64> Mul<i64> for MInt<MOD> {
+        type Output = Self;
+
+        fn mul(self, rhs: i64) -> Self::Output {
+            Self::new(mult::<MOD>(self.0, rhs))
+        }
+    }
+
+    impl<const MOD: i64> MulAssign<Self> for MInt<MOD> {
+        fn mul_assign(&mut self, rhs: Self) {
+            *self = *self * rhs;
+        }
+    }
+
+    impl<const MOD: i64> MulAssign<i64> for MInt<MOD> {
+        fn mul_assign(&mut self, rhs: i64) {
+            *self = *self * rhs;
+        }
+    }
+
+    impl<const MOD: i64> Div for MInt<MOD> {
+        type Output = Self;
+
+        fn div(self, rhs: Self) -> Self::Output {
+            self * rhs.inv()
+        }
+    }
+
+    impl<const MOD: i64> Div<i64> for MInt<MOD> {
+        type Output = Self;
+
+        fn div(self, rhs: i64) -> Self::Output {
+            self * Self::new(rhs).inv()
+        }
+    }
+
+    impl<const MOD: i64> DivAssign<Self> for MInt<MOD> {
+        fn div_assign(&mut self, rhs: Self) {
+            *self = *self * rhs.inv();
+        }
+    }
+
+    impl<const MOD: i64> DivAssign<i64> for MInt<MOD> {
+        fn div_assign(&mut self, rhs: i64) {
+            *self = *self * Self::new(rhs).inv();
+        }
+    }
+
+    impl<const MOD: i64> From<i32> for MInt<MOD> {
+        fn from(val: i32) -> Self {
+            Self::new(val as i64)
+        }
+    }
+
+    impl<const MOD: i64> From<i64> for MInt<MOD> {
+        fn from(val: i64) -> Self {
+            Self::new(val)
+        }
+    }
+
+    impl<const MOD: i64> From<u32> for MInt<MOD> {
+        fn from(val: u32) -> Self {
+            Self::new(val as i64)
+        }
+    }
+
+    impl<const MOD: i64> From<u64> for MInt<MOD> {
+        fn from(val: u64) -> Self {
+            Self::new(val as i64)
+        }
+    }
+
+    impl<const MOD: i64> From<u128> for MInt<MOD> {
+        fn from(val: u128) -> Self {
+            Self::new((val % MOD as u128) as i64)
+        }
+    }
+
+    impl<const MOD: i64> From<i128> for MInt<MOD> {
+        fn from(val: i128) -> Self {
+            Self::new((val % MOD as i128) as i64)
+        }
+    }
+
+    impl<const MOD: i64> From<usize> for MInt<MOD> {
+        fn from(val: usize) -> Self {
+            Self::new(val as i64)
+        }
+    }
+
+    impl<const MOD: i64> From<MInt<MOD>> for usize {
+        fn from(val: MInt<MOD>) -> Self {
+            val.0 as usize
+        }
+    }
+}
+pub type mint = modular::MInt<998244353>;
+
+mod fft {
+    use crate::mint;
+
+    const C: usize = 119;
+    const ROOT_PW: usize = 1 << 23;
+    const G: mint = mint::new(3);
+    const ROOT: mint = G.pow(mint::new(C as i64));
+    const ROOT_1: mint = ROOT.inv();
+
+    // from https://cp-algorithms.com/algebra/fft.html#number-theoretic-transform
+    pub fn fft(a: &mut [mint], invert: bool) {
+        let n = a.len();
+
+        let mut j = 0;
+        for i in 1..n {
+            let mut bit = n >> 1;
+            while j & bit != 0 {
+                j ^= bit;
+                bit >>= 1;
+            }
+            j ^= bit;
+            if i < j {
+                a.swap(i, j);
+            }
+        }
+
+        let mut len = 2;
+        while len <= n {
+            let mut wlen = if invert { ROOT_1 } else { ROOT };
+            let mut i = len;
+            while i < ROOT_PW {
+                wlen *= wlen;
+                i <<= 1;
+            }
+            for i in (0..n).step_by(len) {
+                let mut w = mint::ONE;
+                for j in 0..len / 2 {
+                    let u = a[i + j];
+                    let v = a[i + j + len / 2] * w;
+                    a[i + j] = u + v;
+                    a[i + j + len / 2] = u - v;
+                    w *= wlen;
+                }
+            }
+
+            len <<= 1;
+        }
+
+        if invert {
+            let n_1 = mint::new(n as i64).inv();
+            for x in a {
+                *x *= n_1;
+            }
+        }
+    }
+
+    pub fn convolution(a: &Vec<mint>, b: &Vec<mint>) -> Vec<mint> {
+        let mut fa = a.clone();
+        let mut fb = b.clone();
+        let n = (a.len() + b.len()).next_power_of_two();
+
+        fa.resize(n, mint::ZERO);
+        fb.resize(n, mint::ZERO);
+
+        fft(&mut fa, false);
+        fft(&mut fb, false);
+        for (fai, fbi) in fa.iter_mut().zip(fb) {
+            *fai *= fbi;
+        }
+        fft(&mut fa, true);
+
+        fa
+    }
+}
+
+struct Pack {
+    pub L: Vec<usize>,
+    pub R: Vec<usize>,
+    pub pos1: Vec<usize>,
+    pub pos2: Vec<usize>,
+}
+
+fn dfs<F: Fn(&mut [mint], usize, usize), F2: Fn(i64, i64) -> mint>(
+    dp: &mut [mint],
+    l: usize,
+    r: usize,
+    p: &Pack,
+    add: &F,
+    C: &F2,
+    N: usize,
+) {
+    let L = &p.L;
+    let R = &p.R;
+    let pos1 = &p.pos1;
+    let pos2 = &p.pos2;
+
+    if l + 1 == r {
+        for i in L[l]..R[l] {
+            if i == pos1[l] {
+                add(dp, pos1[l], pos2[l]);
+            } else if i == pos2[l] {
+            } else {
+                for j in 0..i {
+                    add(dp, j, i);
+                }
+                for j in l..(N / 2) {
+                    add(dp, i, pos1[j]);
+                    add(dp, i, pos2[j]);
+                }
+            }
+        }
+        return;
+    }
+
+    let m = (l + r) >> 1;
+    dfs(dp, l, m, p, add, C, N);
+    let mut f1 = vec![mint::ZERO; m - l];
+    let mut f2 = vec![mint::ZERO; m - l];
+    let mut g1 = vec![mint::ZERO; r - l];
+    let mut g2 = vec![mint::ZERO; r - l];
+    let mut g3 = vec![mint::ZERO; r - l];
+    for i in l..m {
+        f1[i - l] = dp[pos1[i]];
+        f2[i - l] = dp[pos2[i]];
+    }
+    for i in 0..(r - l) {
+        g1[i] = C((4 * i - 1) as i64, (2 * i - 1) as i64);
+        g2[i] = C((4 * i + 0) as i64, (2 * i + 0) as i64);
+        g3[i] = C((4 * i + 1) as i64, (2 * i + 1) as i64);
+    }
+    use crate::fft::convolution;
+    let h11 = convolution(&f1, &g2);
+    let h12 = convolution(&f2, &g1);
+    let h21 = convolution(&f1, &g3);
+    let h22 = convolution(&f2, &g2);
+    for i in m..r {
+        dp[pos1[i]] -= h11[i - l] + h12[i - l];
+        dp[pos2[i]] -= h21[i - l] + h22[i - l];
+    }
+    dfs(dp, m, r, p, add, C, N);
+}
+
+fn solve<R: BufRead, W: Write>(mut input: InputReader<R>, mut output: W) {
+    // read in int/float
+    let N: usize = input.next();
+    let M: usize = input.next();
+
+    let mut q = vec![(0, 0); M];
+    for i in 0..M {
+        let mut f: i64 = input.next();
+        let mut s: i64 = input.next();
+        f -= 1;
+        s -= 1;
+        q[i] = (f, s);
+    }
+
+    let MAXN = N * 2 + 10;
+
+    let (fac, finv) = mint::init_fact(MAXN);
+
+    let C = |n: i64, r: i64| -> mint {
+        if n < 0 || r < 0 || n < r {
+            return mint::ZERO;
+        }
+        fac[n as usize] * finv[r as usize] * finv[(n - r) as usize]
+    };
+
+    for i in 0..N {
+        q.push((i as i64, ((i / 2 + 1) * 2) as i64));
+    }
+    q.push((0, 0));
+    q.push((N as i64 - 1, N as i64 - 1));
+    q.sort();
+
+    let lb = |v: &[(i64, i64)], p: &(i64, i64)| -> usize {
+        let (Ok(lower_bound) | Err(lower_bound)) = v
+            .binary_search_by(|element| match element.cmp(&p) {
+                Ordering::Equal => Ordering::Greater,
+                ord => ord,
+            })
+            // Check what we found.
+            .or_else(|idx| {
+                if v.get(idx) == Some(&p) {
+                    Ok(idx)
+                } else {
+                    Err(idx)
+                }
+            });
+        lower_bound
+    };
+
+    let mut L = vec![0; N / 2];
+    let mut R = vec![0; N / 2];
+    let mut pos1 = vec![0; N / 2];
+    let mut pos2 = vec![0; N / 2];
+
+    for i in 0..((N / 2) as i64) {
+        L[i as usize] = lb(&q, &((i + 0) * 2, -1));
+        R[i as usize] = lb(&q, &((i + 1) * 2, -1));
+        pos1[i as usize] = lb(&q, &(i * 2 + 0, (i + 1) * 2));
+        pos2[i as usize] = lb(&q, &(i * 2 + 1, (i + 1) * 2));
+    }
+
+    let mut dp = vec![mint::ZERO; q.len()];
+    dp[0] = 1.into();
+
+    let add = |dp: &mut [mint], a: usize, b: usize| {
+        let x = q[b].0 - q[a].0;
+        let y = q[b].1 - q[a].1;
+        dp[b] -= dp[a] * C(x + y, x);
+    };
+
+    dfs(&mut dp, 0, N / 2, &Pack { L, R, pos1, pos2 }, &add, &C, N);
+    write!(
+        output,
+        "{}\n",
+        mint::ZERO - dp[lb(&q, &((N - 1) as i64, (N - 1) as i64))]
+    );
+}
+
+//#region
+fn main() {
+    let input = InputReader::new();
+    let writer = BufWriter::new(stdout().lock());
+    solve(input, writer);
+}
+
+pub struct InputReader<R: BufRead> {
+    reader: R,
+    buf: [u8; 1 << 16],
+    bytes_read: usize,
+    current_index: usize,
+}
+
+impl InputReader<StdinLock<'_>> {
+    pub fn new() -> Self {
+        Self::from_reader(stdin().lock())
+    }
+}
+
+impl InputReader<BufReader<File>> {
+    pub fn from_file(path: &str) -> Self {
+        Self::from_reader(BufReader::new(File::open(path).unwrap()))
+    }
+}
+
+impl<R: BufRead> InputReader<R> {
+    pub fn from_reader(reader: R) -> Self {
+        Self {
+            reader,
+            buf: [0; 1 << 16],
+            bytes_read: 0,
+            current_index: 0,
+        }
+    }
+    #[inline(always)]
+    pub fn next<T: InputReadable>(&mut self) -> T {
+        T::from_input(self)
+    }
+
+    pub fn read_line(&mut self, buf: &mut String) {
+        self.consume_until(|c| c.is_ascii_graphic());
+        while self.has_more() && self.peek().is_ascii_graphic() {
+            buf.push(self.peek());
+            self.consume();
+        }
+        self.consume_until(|c| c.is_ascii_graphic());
+    }
+    #[inline(always)]
+    pub fn has_more(&mut self) -> bool {
+        if self.current_index >= self.bytes_read {
+            self.bytes_read = self.reader.read(&mut self.buf[..]).unwrap();
+            self.current_index = 0
+        }
+        self.bytes_read > 0
+    }
+    #[inline(always)]
+    fn peek(&self) -> char {
+        self.buf[self.current_index] as char
+    }
+
+    #[inline(always)]
+    fn peek_int(&self) -> u8 {
+        self.buf[self.current_index]
+    }
+
+    #[inline(always)]
+    fn consume(&mut self) {
+        self.current_index += 1;
+    }
+
+    #[inline(always)]
+    fn pop_digit(&mut self) -> u32 {
+        let c = self.peek_int();
+        self.consume();
+        c as u32 - 48
+    }
+
+    #[inline(always)]
+    fn consume_until<F: Fn(char) -> bool>(&mut self, test: F) {
+        while self.has_more() {
+            if test(self.peek()) {
+                return;
+            }
+            self.consume();
+        }
+    }
+
+    #[inline(always)]
+    fn consume_until_int<F: Fn(u8) -> bool>(&mut self, test: F) {
+        while self.has_more() {
+            if test(self.peek_int()) {
+                return;
+            }
+            self.consume();
+        }
+    }
+
+    #[inline(always)]
+    fn consume_until_sign(&mut self) -> i64 {
+        loop {
+            self.consume_until(|c| c.is_ascii_digit() || c == '-');
+            if self.peek() != '-' {
+                return 1;
+            }
+
+            self.consume();
+            assert!(self.has_more());
+            if self.peek().is_ascii_digit() {
+                return -1;
+            }
+        }
+    }
+}
+
+pub trait InputReadable {
+    fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self;
+}
+
+impl InputReadable for String {
+    fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self {
+        input.consume_until(|c| c.is_ascii_graphic());
+        let mut word = String::new();
+        while input.peek().is_ascii_graphic() {
+            word.push(input.peek());
+            input.consume();
+            if !input.has_more() {
+                break;
+            }
+        }
+        word
+    }
+}
+
+impl InputReadable for char {
+    #[inline(always)]
+    fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self {
+        input.consume_until(|c| c.is_ascii_graphic());
+        let c = input.peek();
+        input.consume();
+        c
+    }
+}
+
+macro_rules! impl_readable_from {
+  ($A:ty, [$($T:ty),+]) => {
+    $(impl InputReadable for $T {
+        #[inline(always)]
+      fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self {
+        <$A>::from_input(input) as $T
+      }
+    })+
+  };
+}
+
+macro_rules! impl_unsign_from_input {
+    ($($t:ty),+) => {$(
+        impl InputReadable for $t {
+            #[inline(always)]
+            fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self {
+                input.consume_until_int(|c| c.is_ascii_graphic());
+                let mut num = 0 as $t;
+                while input.peek_int().is_ascii_graphic() {
+                    num = num * 10 + input.pop_digit() as $t;
+                    if !input.has_more() {
+                        break;
+                    }
+                }
+                num
+            }
+        }
+    )+};
+}
+
+macro_rules! impl_sign_from_input {
+    ($b:ty, $t:ty) => {
+        impl InputReadable for $t {
+            #[inline(always)]
+            fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self {
+                let sign = input.consume_until_sign();
+                <$b>::from_input(input) as $t * sign as $t
+            }
+        }
+    };
+}
+
+macro_rules! impl_floating_from_input {
+    ($($t:ty),+) => {$(
+        impl InputReadable for $t {
+            #[inline(always)]
+            fn from_input<R: BufRead>(input: &mut InputReader<R>) -> Self {
+                let sign = input.consume_until_sign() as $t;
+                let mut num = 0.0;
+                while input.peek().is_ascii_digit() {
+                    num = num * 10.0 + input.pop_digit() as $t;
+                    if !input.has_more() {
+                        break;
+                    }
+                }
+
+                let mut factor = 1.0;
+                if input.has_more() && input.peek() == '.' {
+                    input.consume();
+                    while input.has_more() && input.peek().is_ascii_digit() {
+                        num = num * 10.0 + input.pop_digit() as $t;
+                        factor *= 10.0;
+                    }
+                }
+                let mantissa = sign * num / factor;
+
+                if input.has_more() && (input.peek() == 'E' || input.peek() == 'e') {
+                    let mut exp = 0.0 as $t;
+                    input.consume();
+                    exp *= input.consume_until_sign() as $t;
+                    while input.has_more() && input.peek().is_ascii_digit() {
+                        exp = exp * 10.0 + input.pop_digit() as $t;
+                        factor *= 10.0;
+                    }
+                    mantissa * (10.0 as $t).powf(exp)
+                } else {
+                    mantissa
+                }
+
+            }
+        }
+    )+};
+}
+
+impl_unsign_from_input! {u32, u64}
+impl_sign_from_input! {u32, i32}
+impl_sign_from_input! {u64, i64}
+impl_floating_from_input! {f32, f64}
+impl_readable_from! { u32, [u16, u8, usize] }
+impl_readable_from! { i32, [i16, i8, isize] }
+
+//#endregion

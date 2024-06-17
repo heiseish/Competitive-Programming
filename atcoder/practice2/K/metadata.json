@@ -1,0 +1,17 @@
+{
+ "code_filename": "main.rs",
+ "judge": {
+  "judge_type": "normal"
+ },
+ "lang": "rust",
+ "problem": {
+  "alphabet": "K",
+  "contest": {
+   "contest_id": "practice2"
+  },
+  "problem_id": "practice2_k"
+ },
+ "sample_in_pattern": "in*.txt",
+ "sample_out_pattern": "ans*.txt",
+ "timeout_ms": 5000
+}

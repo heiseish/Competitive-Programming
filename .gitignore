@@ -1,10 +1,9 @@
-/*
+
 !/codechef
-# !/codeforce
+# !/cf
 !/devskill
 !/IOI
 #!/kattis
-#!/kattis_done
 !/spoj
 !/UVA
 
@@ -15,4 +14,4 @@
 # Ignore input files
 *.txt
 
-*/.vscode
+.vscode/
