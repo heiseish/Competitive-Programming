@@ -1,10 +1,10 @@
 /*
 !/codechef
-!/codeforce
+# !/codeforce
 !/devskill
 !/IOI
-!/kattis
-!/kattis_done
+#!/kattis
+#!/kattis_done
 !/spoj
 !/UVA
 
@@ -15,4 +15,4 @@
 # Ignore input files
 *.txt
 
-
+*/.vscode
